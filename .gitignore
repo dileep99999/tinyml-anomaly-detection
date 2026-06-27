@@ -1,11 +1,19 @@
 # Data files
 data/processed/*.npz
+data/processed/*.npy
 data/raw/
+
+# MIMII audio files
+MIMII/
 
 # Documents
 *.pdf
 *.docx
+*.pptx
 STATUS.md
+
+# Mid sem report
+mid_sem_report/
 
 # Notebooks 07 & 08
 notebooks/07_edge_impulse_simulation.ipynb
