@@ -1,0 +1,39 @@
+# Data files
+data/processed/*.npz
+data/raw/
+
+# Documents
+*.pdf
+*.docx
+STATUS.md
+
+# Notebooks 07 & 08
+notebooks/07_edge_impulse_simulation.ipynb
+notebooks/08_demo.ipynb
+
+# App folder
+app/
+
+# Edge Impulse results
+results/edge_impulse/
+
+# Results plots
+results/plots/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
