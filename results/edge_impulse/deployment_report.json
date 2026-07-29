@@ -1,0 +1,34 @@
+{
+  "model": {
+    "type": "Convolutional Autoencoder (CAE)",
+    "quantization": "int8 post-training quantization",
+    "input_shape": [
+      1,
+      2048,
+      1
+    ],
+    "input_dtype": "<class 'numpy.float32'>",
+    "model_size_kb": 306.88,
+    "c_header_file": "anomaly_detection_model.h"
+  },
+  "memory": {
+    "flash_required_kb": 336.88,
+    "ram_required_kb": 99.06,
+    "arena_kb": 94.06
+  },
+  "inference": {
+    "pc_latency_ms": 4.225,
+    "anomaly_threshold": 1.120976,
+    "threshold_percentile": 95,
+    "window_size_samples": 2048,
+    "sample_rate_hz": 48000,
+    "window_duration_ms": 42.7
+  },
+  "compatible_mcus": [
+    "Arduino Nano 33 BLE",
+    "STM32F411",
+    "STM32F446",
+    "STM32H743",
+    "ESP32"
+  ]
+}
