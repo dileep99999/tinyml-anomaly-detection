@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TinyML Anomaly Detector — Thondupu Dileep</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <div>
+        <h1>TinyML Anomaly Detector</h1>
+        <p>BITS Pilani WILP Dissertation — Thondupu Dileep | 2024AB05233</p>
+      </div>
+    </div>
+    <div class="threshold-badge">
+      <span>Threshold</span>
+      <strong id="threshold-val">{{ threshold }}</strong>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- Left panel: controls -->
+  <section class="panel control-panel">
+
+    <!-- Tab switcher -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dataset', this)">Dataset Sample</button>
+      <button class="tab"        onclick="switchTab('upload',  this)">Upload .mat File</button>
+      <button class="tab"        onclick="switchTab('all',     this)">All Classes</button>
+      <button class="tab"        onclick="switchTab('stream',  this)">Live Simulator</button>
+      <button class="tab"        onclick="switchTab('deploy',  this)">Industrial Deployment</button>
+    </div>
+
+    <!-- Dataset tab -->
+    <div class="tab-content active" id="tab-dataset">
+      <label>Select Fault Type</label>
+      <select id="class-select">
+        {% for c in classes %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn-primary" onclick="predictClass()">
+        <span>▶ Run Detection</span>
+      </button>
+    </div>
+
+    <!-- Upload tab -->
+    <div class="tab-content" id="tab-upload">
+      <label>Upload your .mat file</label>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <span class="drop-icon">📂</span>
+        <p>Click or drag & drop a .mat file</p>
+        <small id="file-name">No file selected</small>
+      </div>
+      <input type="file" id="file-input" accept=".mat" style="display:none"
+             onchange="fileSelected(this)"/>
+      <button class="btn-primary" onclick="predictUpload()">
+        <span>▶ Analyse File</span>
+      </button>
+    </div>
+
+    <!-- All classes tab -->
+    <div class="tab-content" id="tab-all">
+      <p style="color:#aaa;font-size:13px;margin-bottom:12px">
+        Runs inference on all 10 fault types and shows accuracy.
+      </p>
+      <button class="btn-primary" onclick="predictAll()">
+        <span>▶ Test All Classes</span>
+      </button>
+      <div id="all-results-table" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Live Simulator tab -->
+    <div class="tab-content" id="tab-stream">
+      <p style="color:#6b7280;font-size:12px;margin-bottom:12px">
+        Simulates live CWRU data streaming. Click "Start Stream" and inject defects to test in real time.
+      </p>
+      <button class="btn-primary" id="btn-stream-toggle" onclick="toggleLiveStream()" style="margin-bottom:12px">
+        <span>▶ Start Stream</span>
+      </button>
+      
+      <label>Inject Anomaly</label>
+      <select id="stream-class-select">
+        {% for c in classes %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn-primary" onclick="injectStreamFault()" style="background:#dc2626;border-color:#b91c1c;margin-bottom:12px">
+        <span>🚨 Inject Fault</span>
+      </button>
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#4b5563">
+        <label for="siren-sound" style="margin-bottom:0;text-transform:none">Enable Alarm Siren</label>
+        <input type="checkbox" id="siren-sound" checked>
+      </div>
+    </div>
+
+    <!-- Industrial Deployment tab -->
+    <div class="tab-content" id="tab-deploy">
+      <p style="color:#6b7280;font-size:12px;margin-bottom:12px">
+        This view displays the physical sensor and edge node locations on a large-scale L&T Valve Pressure Testing Rig.
+      </p>
+      <p style="color:#4b5563;font-size:12px;line-height:1.5">
+        Hover over the glowing numbered circles (1-4) on the rig schematic to see the parameter and sensor being monitored at that location.
+      </p>
+    </div>
+
+    <!-- Model info card -->
+    <div class="info-card" style="margin-top:24px">
+      <h3>Model Info</h3>
+      <div class="info-row"><span>Architecture</span><strong>Conv1D Autoencoder</strong></div>
+      <div class="info-row"><span>Quantization</span><strong>Int8 TFLite</strong></div>
+      <div class="info-row"><span>Window size</span><strong>2048 samples</strong></div>
+      <div class="info-row"><span>Sample rate</span><strong>48,000 Hz</strong></div>
+      <div class="info-row"><span>Dataset</span><strong>CWRU Bearing</strong></div>
+    </div>
+
+  </section>
+
+  <!-- Right panel: results -->
+  <section class="panel result-panel">
+
+    <!-- Loading spinner -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Running inference...</p>
+    </div>
+
+    <!-- Placeholder -->
+    <div id="placeholder" class="placeholder">
+      <span>🔍</span>
+      <p>Select a fault type or upload a file to begin detection</p>
+    </div>
+
+    <!-- Result card -->
+    <div id="result-card" class="hidden">
+
+      <div id="verdict-banner" class="verdict-banner">
+        <span id="verdict-icon"></span>
+        <div>
+          <h2 id="verdict-text"></h2>
+          <p id="verdict-class"></p>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Anomaly Score</span>
+          <span class="metric-value" id="score-val">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Threshold</span>
+          <span class="metric-value" id="thresh-val">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Inference Time</span>
+          <span class="metric-value" id="latency-val">—</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Windows Flagged</span>
+          <span class="metric-value" id="windows-val">—</span>
+        </div>
+      </div>
+
+      <h3 class="plot-title">Signal Reconstruction</h3>
+      <img id="recon-plot" class="plot-img" src="" alt="Reconstruction plot"/>
+
+      <h3 class="plot-title">Sliding Window Detection</h3>
+      <img id="slide-plot" class="plot-img" src="" alt="Sliding window plot"/>
+
+    </div>
+
+    <!-- Deployment schematic container -->
+    <div id="deploy-schematic-card" class="hidden" style="width:100%;height:100%;min-height:500px;position:relative;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 id="deploy-rig-title" style="font-size:16px;font-weight:600;color:#111111;margin:0;">L&T Hydraulic Valve Testing Rig — Edge Node Tour</h3>
+        <div style="display:flex; gap:6px;">
+          <button onclick="changeMachine(-1)" style="background:#ffffff; border:1px solid #d1d5db; border-radius:4px; padding:3px 8px; cursor:pointer; font-weight:bold; font-size:11px;">◀ Previous</button>
+          <button onclick="changeMachine(1)" style="background:#ffffff; border:1px solid #d1d5db; border-radius:4px; padding:3px 8px; cursor:pointer; font-weight:bold; font-size:11px;">Next ▶</button>
+        </div>
+      </div>
+      <p id="deploy-rig-desc" style="color:#6b7280;font-size:12px;margin-bottom:16px">
+        Interactive schematic of a valve pressure test bench showing where microcontrollers (Edge Nodes) are deployed.
+      </p>
+      
+      <!-- Rig 1: Hydraulic Rig -->
+      <div class="rig-image-container" id="rig-container-1" style="position:relative; width:100%; max-width:800px; margin:0 auto; border:1px solid #d1d5db; border-radius:8px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)">
+        <img src="/static/images/hydraulic_test_rig.jpg" style="width:100%; display:block;" alt="L&T Hydraulic Rig"/>
+        
+        <!-- Hotspots -->
+        <div class="hotspot-node" id="node-motor" style="position:absolute; left:18%; top:60%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#3b82f6; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#2563eb; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">1</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-pump" style="position:absolute; left:45%; top:55%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#10b981; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#059669; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">2</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-valve" style="position:absolute; left:75%; top:45%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#f59e0b; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#d97706; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">3</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-plc" style="position:absolute; left:8%; top:32%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#ef4444; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#dc2626; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">4</span>
+        </div>
+        
+        <!-- Tooltips -->
+        <div id="tooltip-motor" class="rig-tooltip hidden" style="position:absolute; left:25%; top:50%; z-index:20;">
+          <h4>Edge Node 1</h4>
+          <p class="tag">Bearing Anomaly Monitoring</p>
+          <p class="desc">Vibration acceleration checked at motor bearings to prevent rotor imbalance and seize.</p>
+          <p class="hw">Hardware: ESP32 + ADXL345</p>
+        </div>
+        
+        <div id="tooltip-pump" class="rig-tooltip hidden" style="position:absolute; left:52%; top:45%; z-index:20;">
+          <h4>Edge Node 2</h4>
+          <p class="tag">Pump Cavitation Analysis</p>
+          <p class="desc">Acoustic fingerprinting monitors suction head cavitation and reciprocating block wear.</p>
+          <p class="hw">Hardware: STM32F4 + MEMS Mic</p>
+        </div>
+        
+        <div id="tooltip-valve" class="rig-tooltip hidden" style="position:absolute; left:50%; top:20%; z-index:20;">
+          <h4>Edge Node 3</h4>
+          <p class="tag">Pressure Leak Detection</p>
+          <p class="desc">Vibration acoustics at pressure seals monitor pressure valve bypass leaks.</p>
+          <p class="hw">Hardware: Arduino Nano BLE Sense</p>
+        </div>
+        
+        <div id="tooltip-plc" class="rig-tooltip hidden" style="position:absolute; left:15%; top:15%; z-index:20;">
+          <h4>Safety Node 4</h4>
+          <p class="tag">Emergency Trip Actuator</p>
+          <p class="desc">Direct relay shuts down rig motor when Nodes 1-3 report failure.</p>
+          <p class="hw">Hardware: SSR Modbus relay</p>
+        </div>
+      </div>
+      
+      <!-- Rig 2: Centrifugal Fan Blower -->
+      <div class="rig-image-container hidden" id="rig-container-2" style="position:relative; width:100%; max-width:800px; margin:0 auto; border:1px solid #d1d5db; border-radius:8px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)">
+        <img src="/static/images/centrifugal_fan.jpg" style="width:100%; display:block;" alt="Industrial Centrifugal Blower"/>
+        
+        <!-- Hotspots -->
+        <div class="hotspot-node" id="node-fanblade" style="position:absolute; left:32%; top:40%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#3b82f6; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#2563eb; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">1</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-fanbearing" style="position:absolute; left:58%; top:58%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#10b981; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#059669; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">2</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-fanflow" style="position:absolute; left:18%; top:25%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#f59e0b; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#d97706; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">3</span>
+        </div>
+        
+        <div class="hotspot-node" id="node-fanpanel" style="position:absolute; left:80%; top:40%; cursor:pointer;">
+          <span class="ring" style="position:absolute; width:30px; height:30px; border-radius:50%; background:#ef4444; opacity:0.4; transform:translate(-11px, -11px);"></span>
+          <span class="dot" style="position:absolute; width:18px; height:18px; border-radius:50%; background:#dc2626; color:#ffffff; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; transform:translate(-5px, -5px);">4</span>
+        </div>
+        
+        <!-- Tooltips -->
+        <div id="tooltip-fanblade" class="rig-tooltip hidden" style="position:absolute; left:39%; top:30%; z-index:20;">
+          <h4>Edge Node 1</h4>
+          <p class="tag">Blade Defect Detection</p>
+          <p class="desc">Acoustic arrays listen to blades to detect crack Propagation or dust accumulation imbalance.</p>
+          <p class="hw">Hardware: ESP32 + MEMS Mic</p>
+        </div>
+        
+        <div id="tooltip-fanbearing" class="rig-tooltip hidden" style="position:absolute; left:65%; top:48%; z-index:20;">
+          <h4>Edge Node 2</h4>
+          <p class="tag">Motor Bearing Vibration</p>
+          <p class="desc">Vibration analysis check on the fan drive shaft bearings to detect inner/outer ring fatigue.</p>
+          <p class="hw">Hardware: STM32F4 + ADXL345</p>
+        </div>
+        
+        <div id="tooltip-fanflow" class="rig-tooltip hidden" style="position:absolute; left:25%; top:15%; z-index:20;">
+          <h4>Edge Node 3</h4>
+          <p class="tag">Inlet Flow Turbulence</p>
+          <p class="desc">Pressure fluctuations monitored at duct inlets to diagnose fan stall or safety blockages.</p>
+          <p class="hw">Hardware: Arduino Nano BLE Sense</p>
+        </div>
+        
+        <div id="tooltip-fanpanel" class="rig-tooltip hidden" style="position:absolute; left:56%; top:30%; z-index:20;">
+          <h4>Safety Node 4</h4>
+          <p class="tag">Power Relay Actuator</p>
+          <p class="desc">Disconnects blower main power contacts if impeller/bearing failure is detected.</p>
+          <p class="hw">Hardware: Solid-State Modbus relay</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
