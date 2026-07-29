@@ -1,23 +1,17 @@
 <div align="center">
-  <h1>🏭 Lightweight TinyML-Based Anomaly Detection<br>for Industrial Embedded Systems</h1>
+  <h1>Lightweight TinyML-Based Anomaly Detection<br>for Industrial Embedded Systems</h1>
   <p><strong>A Convolutional Autoencoder approach for real-time predictive maintenance on ultra-constrained Edge MCUs (like Arduino Uno).</strong></p>
-  
-  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
-  [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15-orange.svg)](https://tensorflow.org)
-  [![Flask](https://img.shields.io/badge/Flask-Web_GUI-green.svg)](https://flask.palletsprojects.com/)
-  [![TinyML](https://img.shields.io/badge/TinyML-Edge_Impulse-purple.svg)](https://edgeimpulse.com)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 </div>
 
 <hr>
 
-## 📖 Project Overview
+## Project Overview
 
 Industrial machinery failures cost billions annually. Traditional cloud-based monitoring suffers from latency, bandwidth costs, and security risks. This project implements a **TinyML anomaly detection system** that runs directly on the edge, enabling real-time predictive maintenance on ultra-low-power microcontrollers.
 
 By utilizing **Unsupervised Convolutional Autoencoders (CAE)**, the system learns the normal operating vibrations and acoustic signatures of machinery. When a machine degrades, the reconstruction error spikes, triggering an anomaly alert.
 
-### 🌟 Key Features
+### Key Features
 - **Unsupervised Learning:** Trains only on "Normal" data. No need for hard-to-get fault data.
 - **Extreme Quantization (INT8):** Neural networks compressed by 11x (from float32) without losing accuracy.
 - **Ultra-low Footprint:** Models optimized to fit within **32 KB Flash & 2 KB RAM** (Arduino Uno/Nano).
@@ -26,7 +20,7 @@ By utilizing **Unsupervised Convolutional Autoencoders (CAE)**, the system learn
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 The pipeline consists of three main components:
 
@@ -42,7 +36,7 @@ The pipeline consists of three main components:
 
 ---
 
-## 📊 Performance & Metrics
+## Performance & Metrics
 
 Our INT8 quantized models achieve near-perfect AUC scores while maintaining microsecond inference latencies on Cortex-M processors.
 
@@ -56,7 +50,7 @@ Our INT8 quantized models achieve near-perfect AUC scores while maintaining micr
 
 ---
 
-## ⚙️ Repository Structure
+## Repository Structure
 
 ```text
 tinyML-anomaly-detection/
@@ -78,7 +72,7 @@ tinyML-anomaly-detection/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Installation
 Clone the repository and install the dependencies:
@@ -119,8 +113,8 @@ This generates `models/uno_anomaly_model.h` which can be dropped directly into t
 
 ---
 
-## 🛡️ License
+## License
 This project is open-source and licensed under the **MIT License**.
 
-## 👨‍💻 Author
+## Author
 **Thondupu Dileep** (BITS Pilani WILP Dissertation)
